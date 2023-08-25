@@ -1,6 +1,4 @@
 #include "fa_chapar.h"
-#include <string.h>
-#include <shellapi.h>
 
 FaChapar::FaChapar(QObject *parent): QObject(parent)
 {

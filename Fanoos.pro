@@ -1,6 +1,6 @@
 TEMPLATE = app
 
-QT += core websockets
+QT += core network
 
 CONFIG += console
 
@@ -11,7 +11,6 @@ SOURCES += Sources/main.cpp \
            Sources/fa_transmitter.cpp
 
 HEADERS += Sources/backend.h \
-           Sources/fa_channel.h \
            Sources/fa_chapar.h \
            Sources/fa_config.h \
            Sources/fa_receiver.h \

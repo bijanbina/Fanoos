@@ -1,6 +1,4 @@
 #include "fa_transmitter.h"
-#include <string.h>
-#include <shellapi.h>
 
 #define JOYSTICK_DELAY 100
 

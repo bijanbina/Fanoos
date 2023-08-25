@@ -1,6 +1,4 @@
 #include "fa_receiver.h"
-#include <string.h>
-#include <shellapi.h>
 
 FaReceiver::FaReceiver(int port, QObject *parent): QObject(parent)
 {
