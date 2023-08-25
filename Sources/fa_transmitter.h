@@ -1,5 +1,5 @@
-#ifndef ReAdmin_H
-#define ReAdmin_H
+#ifndef FA_TRANSMITTER_H
+#define FA_TRANSMITTER_H
 
 #include <QTcpServer>
 #include <QTcpSocket>
@@ -9,17 +9,16 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <QTimer>
-#include <QQmlProperty>
 #include <QSignalMapper>
 #include "backend.h"
 
-class FaChannel : public QObject
+class FaTransmitter : public QObject
 {
     Q_OBJECT
 
 public:
-    explicit FaChannel(int port, QObject *parent = 0);
-    ~FaChannel();
+    explicit FaTransmitter(int port, QObject *parent = 0);
+    ~FaTransmitter();
 
 signals:
     void errorConnection();
@@ -31,6 +30,7 @@ public slots:
     void acceptConnection();
     void readyRead(int id);
     void displayError(QAbstractSocket::SocketError socketError);
+    void dataReady(QString data);
 
 private:
     long bytesReceived;
@@ -40,4 +40,4 @@ private:
     QSignalMapper* signalMapper;
 };
 
-#endif // ReAdmin_H
+#endif // FA_TRANSMITTER_H

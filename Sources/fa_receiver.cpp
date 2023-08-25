@@ -1,10 +1,8 @@
-#include "fa_channel.h"
+#include "fa_receiver.h"
 #include <string.h>
 #include <shellapi.h>
 
-#define JOYSTICK_DELAY 100
-
-FaChannel::FaChannel(int port, QObject *parent): QObject(parent)
+FaReceiver::FaReceiver(int port, QObject *parent): QObject(parent)
 {
     //init
     server = new QTcpServer;
@@ -24,13 +22,13 @@ FaChannel::FaChannel(int port, QObject *parent): QObject(parent)
     }
 }
 
-FaChannel::~FaChannel()
+FaReceiver::~FaReceiver()
 {
     qDebug() << "Closing Server";
     server->close();
 }
 
-void FaChannel::acceptConnection()
+void FaReceiver::acceptConnection()
 {
     qDebug() << "Accepted connection "
              << cons.length();
@@ -50,16 +48,15 @@ void FaChannel::acceptConnection()
     emit clientConnected();
 }
 
-void FaChannel::readyRead(int id)
+void FaReceiver::readyRead(int id)
 {
     QByteArray data = cons[id]->readAll();
-    QString msg = "rx data[";
-    msg += QString::number(id);
-    msg += "]:";
-    qDebug() << msg << data;
+
+    QString data_str = data;
+    emit dataReady(data_str);
 }
 
-void FaChannel::displayError(QAbstractSocket::SocketError socketError)
+void FaReceiver::displayError(QAbstractSocket::SocketError socketError)
  {
      if (socketError == QTcpSocket::RemoteHostClosedError)
          return;
