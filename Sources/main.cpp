@@ -1,11 +1,11 @@
 #include <QGuiApplication>
-#include "fa_channel.h"
+#include "fa_chapar.h"
 
 int main(int argc, char *argv[])
 {
     QGuiApplication app(argc, argv);
 
-    FaChannel *channel = new FaChannel(5000);
+    FaChapar *chapar = new FaChapar();
 
     return app.exec();
 }

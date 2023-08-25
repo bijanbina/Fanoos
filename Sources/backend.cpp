@@ -69,44 +69,6 @@ screen_pos getPrimaryScreen()
     return returnData;
 }
 
-void updateScreenInfo(QObject *item)
-{
-
-    //    screen_pos PrimaryScreen = getPrimaryScreen();
-    //    QQmlProperty::write(item, "x_base", PrimaryScreen.x);
-    //    QQmlProperty::write(item, "y_base", PrimaryScreen.y);
-
-    //    int minimumWidth = QQmlProperty::read(item, "minimumWidth");
-    //    int minimumHeight = QQmlProperty::read(item, "minimumHeight");
-    //    x:x_base + (Screen.width  - minimumWidth)  / 2
-    //    y:y_base + (Screen.height - minimumHeight) / 2
-
-#ifdef __linux__
-    QQmlProperty::write(item, "minimumHeight", 400);
-    //    QQmlProperty::write(item, "visible", 1);
-#endif
-
-#ifdef _WIN32
-    //    QQmlProperty::write(item, "minimumHeight", 400);
-    QQmlProperty::write(item, "minimumHeight", 300);
-#endif
-
-    //    QMetaObject::invokeMethod(item, "show");
-}
-
-int isItemVisible(QObject *item)
-{
-    if ( item != NULL )
-    {
-        int visible = QQmlProperty::read(item, "visible").toInt();
-        return visible;
-    }
-    else
-    {
-        return 0;
-    }
-}
-
 #ifdef WIN32
 
 void executeAhk(QString name)

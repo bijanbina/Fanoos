@@ -1,8 +1,6 @@
 #ifndef BACKEND_H
 #define BACKEND_H
 
-#include <QQmlApplicationEngine>
-#include <QQmlProperty>
 #include <QDebug>
 #include <stdio.h>
 #include <unistd.h>

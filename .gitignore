@@ -1,0 +1,16 @@
+
+*.stash
+
+Build/.moc/
+
+Build/.obj/
+
+*.Release
+
+*.Debug
+
+Makefile
+
+*.user
+
+debug/
