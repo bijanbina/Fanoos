@@ -42,7 +42,7 @@ void FaTransmitter::acceptConnection()
     connect(con, SIGNAL(readyRead()), signalMapper, SLOT(map()));
     signalMapper->setMapping(con, id);
     connect(signalMapper, SIGNAL(mapped(int)),
-             this, SLOT(readyRead(int)));
+            this, SLOT(readyRead(int)));
     connect(con, SIGNAL(error(QAbstractSocket::SocketError)),
             this, SLOT(displayError(QAbstractSocket::SocketError)));
 

@@ -22,9 +22,9 @@ public:
 
 signals:
     void dataReady(QString data);
-    void clientDisconnected();
-    void clientConnected();
-    void clientReqSusspend();
+    void clientDisconnected(); //useless
+    void clientConnected(); //useless
+    void clientReqSusspend(); //useless
 
 public slots:
     void acceptConnection();
@@ -32,7 +32,7 @@ public slots:
     void displayError(QAbstractSocket::SocketError socketError);
 
 private:
-    long bytesReceived;
+    long bytesReceived; //useless
     QTcpServer *server;
     QString message;
     QVector<QTcpSocket *> cons; //connections
