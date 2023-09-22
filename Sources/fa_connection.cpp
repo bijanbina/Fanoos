@@ -2,9 +2,10 @@
 
 #define JOYSTICK_DELAY 100
 
-FaConnection::FaConnection(QTcpSocket *con,
+FaConnection::FaConnection(QTcpSocket *con, int con_id,
                QObject *parent): QObject(parent)
 {
+    id = con_id;
     con->setSocketOption(QAbstractSocket::LowDelayOption, 1);
     connection = con;
 
@@ -13,7 +14,7 @@ FaConnection::FaConnection(QTcpSocket *con,
     connect(connection, SIGNAL(error(QAbstractSocket::SocketError)),
             this, SLOT(displayError(QAbstractSocket::SocketError)));
     connect(connection, SIGNAL(disconnected()),
-            this, SLOT(disconnected()));
+            this, SLOT(handleDisconnect()));
 
     live = new QTimer;
     watchdog = new QTimer;
@@ -22,6 +23,11 @@ FaConnection::FaConnection(QTcpSocket *con,
             this, SLOT(liveTimeout()));
     connect(watchdog, SIGNAL(timeout()),
             this, SLOT(watchdogTimeout()));
+
+    live->start(FA_LIVE);
+    watchdog->start(FA_WATCHDOG);
+
+    emit clientConnected(id);
 }
 
 FaConnection::~FaConnection()
@@ -31,10 +37,12 @@ FaConnection::~FaConnection()
 
 void FaConnection::displayError(QAbstractSocket::SocketError socketError)
  {
-     if (socketError == QTcpSocket::RemoteHostClosedError)
+     if( socketError==QTcpSocket::RemoteHostClosedError )
+     {
          return;
+     }
 
-     qDebug() <<  QString("Error Happened");
+     qDebug() << QString("FaConnection::Error Happened");
 }
 
 void FaConnection::write(QString data)
@@ -43,11 +51,12 @@ void FaConnection::write(QString data)
     connection->write(data_b);
 }
 
-void FaConnection::disconnected()
+void FaConnection::handleDisconnect()
 {
     watchdog->stop();
     live->stop();
     connection->close();
+    emit clientDisconnected(id);
 }
 
 void FaConnection::watchdogTimeout()
@@ -56,7 +65,7 @@ void FaConnection::watchdogTimeout()
     {
         qDebug() << "Remote: connection dropped:"
                  << connection->state();
-        disconnected();
+        handleDisconnect();
     }
     else
     {
@@ -87,5 +96,22 @@ void FaConnection::liveTimeout()
 
 void FaConnection::readyRead()
 {
-    watchdog->start(RE_WATCHDOG);
+    QByteArray data = connection->readAll();
+
+    if( data.length()==4 )
+    {
+        watchdog->start(RE_WATCHDOG);
+    }
+    else if( data.contains("Live") )
+    {
+        qDebug() << "Server: Misterious Live" << data;
+        watchdog->start(RE_WATCHDOG);
+        data.replace("Live", "");
+    }
+    else
+    {
+        qDebug() << "Server: Single watchdog failure," << data;
+    }
+
+    emit clientReadyRead(data, id);
 }

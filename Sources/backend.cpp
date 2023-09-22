@@ -1,7 +1,7 @@
 #include "backend.h"
 #include <QFile>
 
-int getIntCommand(char *command)
+int getIntCommand(const char *command)
 {
     FILE *fp;
     int returnData;

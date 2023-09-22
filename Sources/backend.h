@@ -16,7 +16,7 @@ struct screen_pos
     int y;
 };
 
-int getIntCommand(char *command);
+int getIntCommand(const char *command);
 QString getStrCommand(QString command);
 
 screen_pos getPrimaryScreen();

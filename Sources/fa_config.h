@@ -15,6 +15,9 @@
 
 //#define RE_DEBUG_WIN //show window detection debug info
 
+#define FA_LIVE           100   // Live send interval
+#define FA_WATCHDOG       1000  // Watchdog interval
+
 #define RE_CLIENT 0
 #define RE_SERVER 1
 
