@@ -7,7 +7,6 @@ FaTransmitter::FaTransmitter(int port,
 {
     //init
     server = new QTcpServer;
-    signalMapper = new QSignalMapper(this);
     connect(server, SIGNAL(newConnection()),
             this, SLOT(acceptConnection()));
 
@@ -31,33 +30,32 @@ FaTransmitter::~FaTransmitter()
 
 void FaTransmitter::acceptConnection()
 {
+    int new_con_id = fa_cons.length();
     qDebug() << "Accepted connection "
-             << cons.length();
+             << new_con_id;
 
     QTcpSocket *con = server->nextPendingConnection();
-    con->setSocketOption(QAbstractSocket::LowDelayOption, 1);
-    cons.push_back(con);
-
-    int id = cons.length() - 1;
-    connect(con, SIGNAL(readyRead()), signalMapper, SLOT(map()));
-    signalMapper->setMapping(con, id);
-    connect(signalMapper, SIGNAL(mapped(int)),
-            this, SLOT(readyRead(int)));
-    connect(con, SIGNAL(error(QAbstractSocket::SocketError)),
-            this, SLOT(displayError(QAbstractSocket::SocketError)));
-
-    emit clientConnected();
+    FaConnection *connection = new FaConnection(con, new_con_id);
+    connect(connection, SIGNAL(clientReadyRead(QString, int)),
+            this, SLOT(readyRead(QString, int)));
+    connect(connection, SIGNAL(clientDisconnected(int)),
+            this, SLOT(handleDisconnect(int)));
+    connect(connection, SIGNAL(clientConnected(int)),
+            this, SLOT(handleConnect(int)));
+    fa_cons.push_back(connection);
 }
 
-void FaTransmitter::readyRead(int id)
+void FaTransmitter::readyRead(QString data, int id)
 {
-    id;
+    ;
 }
 
 void FaTransmitter::displayError(QAbstractSocket::SocketError socketError)
  {
-     if (socketError == QTcpSocket::RemoteHostClosedError)
+     if( socketError==QTcpSocket::RemoteHostClosedError )
+     {
          return;
+     }
 
      qDebug() <<  QString("Error Happened");
 }
@@ -65,13 +63,23 @@ void FaTransmitter::displayError(QAbstractSocket::SocketError socketError)
 void FaTransmitter::dataReady(QString data)
 {
     QByteArray data_b(data.toStdString().c_str());
-    int len = cons.length();
+    int len = fa_cons.length();
 
     for( int i = 0; i<len; i++ )
     {
-        cons[i]->write(data_b);
+        fa_cons[i]->write(QString(data_b));
     }
 
     QString msg = "broadcast:";
     qDebug() << msg << data;
+}
+
+void FaTransmitter::handleDisconnect(int id)
+{
+    ;
+}
+
+void FaTransmitter::handleConnect(int id)
+{
+    ;
 }

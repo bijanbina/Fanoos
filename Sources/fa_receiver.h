@@ -11,6 +11,7 @@
 #include <QTimer>
 #include <QSignalMapper>
 #include "backend.h"
+#include "fa_connection.h"
 
 class FaReceiver : public QObject
 {
@@ -22,21 +23,20 @@ public:
 
 signals:
     void dataReady(QString data);
-    void clientDisconnected(); //useless
-    void clientConnected(); //useless
-    void clientReqSusspend(); //useless
 
 public slots:
     void acceptConnection();
-    void readyRead(int id);
+    void readyRead(QString data, int id);
     void displayError(QAbstractSocket::SocketError socketError);
+    void handleDisconnect(int id);
+    void handleConnect(int id);
 
 private:
-    long bytesReceived; //useless
+    long bytes_received; //useless
     QTcpServer *server;
     QString message;
-    QVector<QTcpSocket *> cons; //connections
-    QSignalMapper* signalMapper;
+
+    QVector<FaConnection *> fa_cons;
 };
 
 #endif // FA_RECEIVER_H
