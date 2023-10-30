@@ -32,7 +32,13 @@ FaConnection::FaConnection(QTcpSocket *con, int con_id,
 
 FaConnection::~FaConnection()
 {
-    ;
+    if( connection )
+    {
+        if( connection->isOpen() )
+        {
+            connection->close();
+        }
+    }
 }
 
 void FaConnection::displayError(QAbstractSocket::SocketError socketError)
@@ -47,8 +53,17 @@ void FaConnection::displayError(QAbstractSocket::SocketError socketError)
 
 void FaConnection::write(QString data)
 {
-    QByteArray data_b(data.toStdString().c_str());
-    connection->write(data_b);
+    if( connection )
+    {
+        if( connection->isOpen() )
+        {
+            live->start(FA_LIVE);//don't send live
+            QByteArray data_b(data.toStdString().c_str());
+            connection->write(data_b);
+            connection->waitForBytesWritten(50);
+            live->start(FA_LIVE);//don't send live
+        }
+    }
 }
 
 void FaConnection::handleDisconnect()
@@ -59,6 +74,7 @@ void FaConnection::handleDisconnect()
     emit clientDisconnected(id);
 }
 
+// client lost, drop connection and reconnect
 void FaConnection::watchdogTimeout()
 {
     if( connection->isOpen() )
@@ -73,14 +89,19 @@ void FaConnection::watchdogTimeout()
     }
 }
 
+// keep client alive
 void FaConnection::liveTimeout()
 {
     if( connection->isOpen() )
     {
         if( connection->state()==QAbstractSocket::ConnectedState )
         {
-            connection->write("Live");
+            int byte_count = connection->write("Live");
             connection->waitForBytesWritten(50);
+            if( byte_count!=4 )
+            {
+                qDebug() << "Client: live, byte_count:" << byte_count;
+            }
         }
         else
         {
