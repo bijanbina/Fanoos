@@ -11,7 +11,7 @@
 #include <QTimer>
 #include <QSignalMapper>
 #include "backend.h"
-#include "fa_connection.h"
+#include "fa_apache_se.h"
 
 class FaTransmitter : public QObject
 {
@@ -35,7 +35,7 @@ private:
     long bytesReceived;
     QTcpServer *server;
     QString message;
-    QVector<FaConnection *> fa_cons;
+    QVector<FaApacheSe *> fa_cons;
 };
 
 #endif // FA_TRANSMITTER_H

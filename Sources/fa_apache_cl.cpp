@@ -1,20 +1,18 @@
-#include "fa_connection.h"
+#include "fa_apache_cl.h"
 
-#define JOYSTICK_DELAY 100
-
-FaConnection::FaConnection(QTcpSocket *con, int con_id,
-               QObject *parent): QObject(parent)
+FaApacheCl::FaApacheCl(QObject *parent): QObject(parent)
 {
-    id = con_id;
-    con->setSocketOption(QAbstractSocket::LowDelayOption, 1);
-    connection = con;
+    connection = new QTcpSocket;
+    connection->setSocketOption(QAbstractSocket::LowDelayOption, 1);
 
+    connect(connection, SIGNAL(connected()),
+            this, SLOT(connected()));
     connect(connection, SIGNAL(readyRead()),
             this, SLOT(readyRead()));
     connect(connection, SIGNAL(error(QAbstractSocket::SocketError)),
             this, SLOT(displayError(QAbstractSocket::SocketError)));
     connect(connection, SIGNAL(disconnected()),
-            this, SLOT(handleDisconnect()));
+            this, SLOT(disconnected()));
 
     live = new QTimer;
     watchdog = new QTimer;
@@ -23,65 +21,71 @@ FaConnection::FaConnection(QTcpSocket *con, int con_id,
             this, SLOT(liveTimeout()));
     connect(watchdog, SIGNAL(timeout()),
             this, SLOT(watchdogTimeout()));
+}
 
+FaApacheCl::~FaApacheCl()
+{
+    if( connection->isOpen() )
+    {
+        connection->close();
+    }
+    delete connection;
+}
+
+void FaApacheCl::start(QString ip, int port)
+{
+    c_ip = ip;
+    c_port = port;
+    connection->connectToHost(QHostAddress(c_ip), c_port);
+}
+
+void FaApacheCl::connected()
+{
     live->start(FA_LIVE);
     watchdog->start(FA_WATCHDOG);
 
-    emit clientConnected(id);
+    emit clientConnected();
 }
 
-FaConnection::~FaConnection()
-{
-    if( connection )
-    {
-        if( connection->isOpen() )
-        {
-            connection->close();
-        }
-    }
-}
-
-void FaConnection::displayError(QAbstractSocket::SocketError socketError)
+void FaApacheCl::displayError(QAbstractSocket::SocketError socketError)
  {
      if( socketError==QTcpSocket::RemoteHostClosedError )
      {
          return;
      }
 
-     qDebug() << QString("FaConnection::Error Happened");
+     qDebug() << QString("FaApacheCl::Error Happened");
 }
 
-void FaConnection::write(QString data)
+void FaApacheCl::write(QString data)
 {
-    if( connection )
+    if( connection->isOpen() )
     {
-        if( connection->isOpen() )
-        {
-            live->start(FA_LIVE);//don't send live
-            QByteArray data_b(data.toStdString().c_str());
-            connection->write(data_b);
-            connection->waitForBytesWritten(50);
-            live->start(FA_LIVE);//don't send live
-        }
+        live->start(FA_LIVE);//don't send live
+        QByteArray data_b(data.toStdString().c_str());
+        connection->write(data_b);
+        connection->waitForBytesWritten(50);
+        live->start(FA_LIVE);//don't send live
     }
 }
 
-void FaConnection::handleDisconnect()
+void FaApacheCl::disconnect()
 {
-    watchdog->stop();
-    live->stop();
-    connection->close();
-    emit clientDisconnected(id);
+    connection->connectToHost(QHostAddress(c_ip), c_port);
 }
 
 // client lost, drop connection and reconnect
-void FaConnection::watchdogTimeout()
+void FaApacheCl::watchdogTimeout()
 {
     if( connection->isOpen() )
     {
         qDebug() << "Remote: connection dropped:"
                  << connection->state();
-        handleDisconnect();
+        watchdog->stop();
+        live->stop();
+
+        // in disconnect it will try to reconnect
+        connection->close();
     }
     else
     {
@@ -90,7 +94,7 @@ void FaConnection::watchdogTimeout()
 }
 
 // keep client alive
-void FaConnection::liveTimeout()
+void FaApacheCl::liveTimeout()
 {
     if( connection->isOpen() )
     {
@@ -115,24 +119,19 @@ void FaConnection::liveTimeout()
     }
 }
 
-void FaConnection::readyRead()
+void FaApacheCl::readyRead()
 {
     QByteArray data = connection->readAll();
+    watchdog->start(RE_WATCHDOG);
 
-    if( data.length()==4 )
+    if( data=="Live" )
     {
-        watchdog->start(RE_WATCHDOG);
+        return;
     }
     else if( data.contains("Live") )
     {
-        qDebug() << "Server: Misterious Live" << data;
-        watchdog->start(RE_WATCHDOG);
         data.replace("Live", "");
     }
-    else
-    {
-        qDebug() << "Server: Single watchdog failure," << data;
-    }
 
-    emit clientReadyRead(data, id);
+    emit dataReady(data);
 }
