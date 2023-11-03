@@ -12,7 +12,7 @@
 #include <QSignalMapper>
 #include "backend.h"
 #include "fa_transmitter.h"
-#include "fa_receiver.h"
+#include "fa_apache_se.h"
 
 class FaChapar : public QObject
 {
@@ -22,9 +22,12 @@ public:
     explicit FaChapar(QObject *parent = 0);
     ~FaChapar();
 
+public slots:
+    void dataReady(int id, QString data);
+
 private:
-    FaTransmitter *transmitter;
-    FaReceiver    *receiver;
+    FaApacheSe *receiver;
+    FaApacheSe *transmitter;
 };
 
 #endif // FA_CHAPAR_H

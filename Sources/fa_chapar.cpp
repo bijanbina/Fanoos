@@ -3,10 +3,22 @@
 FaChapar::FaChapar(QObject *parent): QObject(parent)
 {
     //init
-    receiver = new FaReceiver(5000);
-    transmitter = new FaTransmitter(5001);
-    connect(receiver, SIGNAL(dataReady(QString)),
-            transmitter, SLOT(dataReady(QString)));
+    receiver = new FaApacheSe;
+    transmitter = new FaApacheSe;
+    connect(receiver, SIGNAL(dataReady(int, QString)),
+            this, SLOT(dataReady(int, QString)));
+
+    receiver->bind(5000);
+    transmitter->bind(5001);
+}
+
+void FaChapar::dataReady(int id, QString data)
+{
+    int len = transmitter->cons.size();
+    for( int i=0 ; i<len ; i++ )
+    {
+        transmitter->write(i, data);
+    }
 }
 
 FaChapar::~FaChapar()
