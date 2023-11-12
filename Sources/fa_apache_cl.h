@@ -10,6 +10,7 @@
 #include <stdlib.h>
 #include <QTimer>
 #include "backend.h"
+#include "fa_apache_se.h"
 
 class FaApacheCl : public QObject
 {

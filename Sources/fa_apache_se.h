@@ -12,6 +12,8 @@
 #include <QSignalMapper>
 #include "backend.h"
 
+#define FA_LIVE_PACKET "<Live>\n"
+
 class FaApacheSe : public QObject
 {
     Q_OBJECT

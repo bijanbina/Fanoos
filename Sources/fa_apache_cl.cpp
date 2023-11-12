@@ -100,22 +100,17 @@ void FaApacheCl::liveTimeout()
     {
         if( connection->state()==QAbstractSocket::ConnectedState )
         {
-            int byte_count = connection->write("Live");
-            connection->waitForBytesWritten(50);
-            if( byte_count!=4 )
-            {
-                qDebug() << "Client: live, byte_count:" << byte_count;
-            }
+            connection->write(FA_LIVE_PACKET);
         }
         else
         {
-            qDebug() << "Remote: live, not connected, State:"
+            qDebug() << "FaApacheCl::liveTimeout: not connected, State:"
                      << connection->state();
         }
     }
     else
     {
-        qDebug() << "Remote: live, tcpClient is closed";
+        qDebug() << "FaApacheCl::liveTimeout: tcpClient is closed";
     }
 }
 
@@ -124,13 +119,13 @@ void FaApacheCl::readyRead()
     QByteArray data = connection->readAll();
     watchdog->start(RE_WATCHDOG);
 
-    if( data=="Live" )
+    if( data==FA_LIVE_PACKET )
     {
         return;
     }
-    else if( data.contains("Live") )
+    else if( data.contains(FA_LIVE_PACKET) )
     {
-        data.replace("Live", "");
+        data.replace(FA_LIVE_PACKET, "");
     }
 
     emit dataReady(data);

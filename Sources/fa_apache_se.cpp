@@ -113,7 +113,7 @@ void FaApacheSe::write(int id, QString data)
     if( cons[id]->isOpen()==0 )
     {
         qDebug() << "Error 302: FaApacheSe::write,"
-                 << "connection not open:" << id;
+                 << "connection not open:" << id << data;
         return;
     }
 
@@ -154,22 +154,17 @@ void FaApacheSe::liveTimeout(int id)
     {
         if( cons[id]->state()==QAbstractSocket::ConnectedState )
         {
-            int byte_count = cons[id]->write("Live");
-            cons[id]->waitForBytesWritten(50);
-            if( byte_count!=4 )
-            {
-                qDebug() << "Client: live, byte_count:" << byte_count;
-            }
+            cons[id]->write(FA_LIVE_PACKET);
         }
         else
         {
-            qDebug() << "Remote: live, not connected, State:"
+            qDebug() << "FaApacheSe::liveTimeout: not connected, State:"
                      << cons[id]->state();
         }
     }
     else
     {
-        qDebug() << "Remote: live, tcpClient is closed";
+        qDebug() << "FaApacheSe::liveTimeout: tcpClient is closed";
     }
 }
 
@@ -179,13 +174,13 @@ void FaApacheSe::readyRead(int id)
 
     watchdogs[id]->start(RE_WATCHDOG);
 
-    if( data=="Live" )
+    if( data==FA_LIVE_PACKET )
     {
         return;
     }
-    else if( data.contains("Live") )
+    else if( data.contains(FA_LIVE_PACKET) )
     {
-        data.replace("Live", "");
+        data.replace(FA_LIVE_PACKET, "");
     }
 
     emit dataReady(id, data);
