@@ -12,7 +12,9 @@
 #include <QSignalMapper>
 #include "backend.h"
 
-#define FA_LIVE_PACKET "<Live>\n"
+#define FA_LIVE_PACKET  "--Live--"
+#define FA_START_PACKET "<START>\n"
+#define FA_END_PACKET   "\n<END>\n"
 
 class FaApacheSe : public QObject
 {
@@ -41,6 +43,8 @@ public slots:
     void liveTimeout(int id);
 
 private:
+    QByteArray processBuffer(int id);
+
     QSignalMapper *mapper_data;
     QSignalMapper *mapper_disconnect;
     QSignalMapper *mapper_live;
@@ -48,6 +52,7 @@ private:
     QTcpServer *server;
     QVector<QTimer *> lives;
     QVector<QTimer *> watchdogs;
+    QVector<QByteArray> read_bufs;
     int id;
 };
 

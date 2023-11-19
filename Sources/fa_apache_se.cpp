@@ -119,6 +119,8 @@ void FaApacheSe::write(int id, QString data)
 
     lives[id]->start(FA_LIVE);//don't send live
     QByteArray data_b(data.toStdString().c_str());
+    data_b.prepend(FA_START_PACKET);
+    data_b.append(FA_END_PACKET);
     cons[id]->write(data_b);
     cons[id]->waitForBytesWritten(50);
     lives[id]->start(FA_LIVE);//don't send live
@@ -170,7 +172,8 @@ void FaApacheSe::liveTimeout(int id)
 
 void FaApacheSe::readyRead(int id)
 {
-    QByteArray data = cons[id]->readAll();
+    read_bufs[id] += cons[id]->readAll();
+    QByteArray data = processBuffer(id);
 
     watchdogs[id]->start(RE_WATCHDOG);
 
@@ -183,5 +186,33 @@ void FaApacheSe::readyRead(int id)
         data.replace(FA_LIVE_PACKET, "");
     }
 
+    if( data.isEmpty() )
+    {
+        return;
+    }
+
     emit dataReady(id, data);
+}
+
+QByteArray FaApacheSe::processBuffer(int id)
+{
+    if( read_bufs[id].contains(FA_START_PACKET)==0 )
+    {
+        return "";
+    }
+    if( read_bufs[id].contains(FA_END_PACKET)==0 )
+    {
+        return "";
+    }
+    int start_index = read_bufs[id].indexOf(FA_START_PACKET);
+    start_index += strlen(FA_START_PACKET);
+    read_bufs[id].remove(0, start_index);
+
+    int end_index = read_bufs[id].indexOf(FA_END_PACKET);
+    QByteArray data = read_bufs[id].mid(0, end_index);
+
+    end_index += strlen(FA_END_PACKET);
+    read_bufs[id].remove(0, end_index);
+
+    return data;
 }

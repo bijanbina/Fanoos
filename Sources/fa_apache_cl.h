@@ -37,9 +37,12 @@ public slots:
     void liveTimeout();
 
 private:
+    QByteArray processBuffer();
+
     QTcpSocket *connection;
     QTimer *live;
     QTimer *watchdog;
+    QByteArray read_buf;
 
     QString c_ip;
     int c_port;
