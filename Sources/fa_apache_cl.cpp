@@ -102,7 +102,7 @@ void FaApacheCl::liveTimeout()
     {
         if( connection->state()==QAbstractSocket::ConnectedState )
         {
-            connection->write(FA_LIVE_PACKET);
+            write(FA_LIVE_PACKET);
         }
         else
         {

@@ -13,8 +13,8 @@
 #include "backend.h"
 
 #define FA_LIVE_PACKET  "--Live--"
-#define FA_START_PACKET "<START>\n"
-#define FA_END_PACKET   "\n<END>\n"
+#define FA_START_PACKET "<START>\r\n"
+#define FA_END_PACKET   "\r\n<END>\r\n"
 
 class FaApacheSe : public QObject
 {
@@ -30,7 +30,6 @@ public:
     QVector<QTcpSocket *> cons;
 
 signals:
-    void disconnected(int id);
     void connected(int id);
     void dataReady(int id, QString data);
 

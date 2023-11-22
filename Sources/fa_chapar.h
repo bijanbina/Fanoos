@@ -11,7 +11,6 @@
 #include <QTimer>
 #include <QSignalMapper>
 #include "backend.h"
-#include "fa_transmitter.h"
 #include "fa_apache_se.h"
 
 class FaChapar : public QObject

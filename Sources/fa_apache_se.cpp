@@ -44,9 +44,11 @@ void FaApacheSe::bind(int port)
 void FaApacheSe::acceptConnection()
 {
     int new_con_id = cons.length();
-    qDebug() << "Accepted connection" << new_con_id;
+    cons.push_back(NULL);
+    qDebug() << "FaApacheSe::acceptConnection" << new_con_id;
 
     QTcpSocket *con = server->nextPendingConnection();
+    cons[new_con_id] = con;
     con->setSocketOption(QAbstractSocket::LowDelayOption, 1);
     QTimer *live     = new QTimer;
     QTimer *watchdog = new QTimer;
@@ -66,7 +68,7 @@ void FaApacheSe::acceptConnection()
             mapper_disconnect, SLOT(map()));
     mapper_disconnect->setMapping(con, new_con_id);
     connect(mapper_disconnect, SIGNAL(mapped(int)),
-            this, SLOT(disconnected(int)));
+            this, SLOT(tcpDisconnected(int)));
 
     // live
     connect(live, SIGNAL(timeout()),
@@ -84,7 +86,7 @@ void FaApacheSe::acceptConnection()
 
     lives.push_back(live);
     watchdogs.push_back(watchdog);
-    cons.push_back(con);
+    read_bufs.push_back(QByteArray());
 
     live->start(FA_LIVE);
     watchdog->start(FA_WATCHDOG);
@@ -131,7 +133,6 @@ void FaApacheSe::tcpDisconnected(int id)
     watchdogs[id]->stop();
     lives[id]->stop();
     cons[id]->close();
-    emit disconnected(id);
 }
 
 // client lost, drop connection and reconnect
@@ -141,7 +142,10 @@ void FaApacheSe::watchdogTimeout(int id)
     {
         qDebug() << "Remote: connection dropped:"
                  << cons[id]->state();
-        disconnected(id);
+        watchdogs[id]->stop();
+        lives[id]->stop();
+        cons[id]->close();
+
     }
     else
     {
@@ -156,7 +160,7 @@ void FaApacheSe::liveTimeout(int id)
     {
         if( cons[id]->state()==QAbstractSocket::ConnectedState )
         {
-            cons[id]->write(FA_LIVE_PACKET);
+            write(id, FA_LIVE_PACKET);
         }
         else
         {
