@@ -36,7 +36,7 @@ signals:
 public slots:
     void readyRead(int id);
     void acceptConnection();
-    void displayError(QAbstractSocket::SocketError socketError);
+    void displayError(int id);
     void tcpDisconnected(int id);
     void watchdogTimeout(int id);
     void liveTimeout(int id);
@@ -46,6 +46,7 @@ private:
 
     QSignalMapper *mapper_data;
     QSignalMapper *mapper_disconnect;
+    QSignalMapper *mapper_error;
     QSignalMapper *mapper_live;
     QSignalMapper *mapper_watchdog;
     QTcpServer *server;

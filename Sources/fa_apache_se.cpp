@@ -8,6 +8,7 @@ FaApacheSe::FaApacheSe(QObject *parent): QObject(parent)
 
     mapper_data       = new QSignalMapper(this);
     mapper_disconnect = new QSignalMapper(this);
+    mapper_error      = new QSignalMapper(this);
     mapper_live       = new QSignalMapper(this);
     mapper_watchdog   = new QSignalMapper(this);
 }
@@ -61,7 +62,10 @@ void FaApacheSe::acceptConnection()
 
     // displayError
     connect(con, SIGNAL(error(QAbstractSocket::SocketError)),
-            this, SLOT(displayError(QAbstractSocket::SocketError)));
+            mapper_error, SLOT(map()));
+    mapper_data->setMapping(con, new_con_id);
+    connect(mapper_error, SIGNAL(mapped(int)),
+             this, SLOT(displayError(int)));
 
     // disconnected
     connect(con, SIGNAL(disconnected()),
@@ -93,15 +97,17 @@ void FaApacheSe::acceptConnection()
     emit connected(new_con_id);
 }
 
-void FaApacheSe::displayError(QAbstractSocket::SocketError
-                              socketError)
+void FaApacheSe::displayError(int id)
  {
-     if( socketError==QTcpSocket::RemoteHostClosedError )
-     {
-         return;
-     }
+    qDebug() << "FaApacheSe::Error" << cons[id]->errorString();
 
-     qDebug() << QString("FaApacheSe::Error Happened");
+    cons[id]->close();
+    lives[id]->stop();
+    watchdogs[id]->stop();
+    if( cons[id]->error()==QTcpSocket::RemoteHostClosedError )
+    {
+        return;
+    }
 }
 
 void FaApacheSe::write(int id, QString data)
@@ -112,7 +118,8 @@ void FaApacheSe::write(int id, QString data)
                  << "connection not found:" << id;
         return;
     }
-    if( cons[id]->isOpen()==0 )
+    if( cons[id]->isOpen()==0 ||
+        cons[id]->state()!=QAbstractSocket::ConnectedState )
     {
         qDebug() << "Error 302: FaApacheSe::write,"
                  << "connection not open:" << id << data;
@@ -132,7 +139,6 @@ void FaApacheSe::tcpDisconnected(int id)
 {
     watchdogs[id]->stop();
     lives[id]->stop();
-    cons[id]->close();
 }
 
 // client lost, drop connection and reconnect
@@ -166,11 +172,13 @@ void FaApacheSe::liveTimeout(int id)
         {
             qDebug() << "FaApacheSe::liveTimeout: not connected, State:"
                      << cons[id]->state();
+            lives[id]->stop();
         }
     }
     else
     {
-        qDebug() << "FaApacheSe::liveTimeout: tcpClient is closed";
+        qDebug() << "ReApacheCl::liveTimeout: socket is closed";
+        lives[id]->stop();
     }
 }
 
@@ -179,7 +187,7 @@ void FaApacheSe::readyRead(int id)
     read_bufs[id] += cons[id]->readAll();
     QByteArray data = processBuffer(id);
 
-    watchdogs[id]->start(RE_WATCHDOG);
+    watchdogs[id]->start(FA_WATCHDOG);
 
     if( data==FA_LIVE_PACKET )
     {
