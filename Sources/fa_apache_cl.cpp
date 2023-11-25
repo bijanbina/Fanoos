@@ -120,7 +120,7 @@ void FaApacheCl::readyRead()
 {
     read_buf += connection->readAll();
     QByteArray data = processBuffer();
-    watchdog->start(RE_WATCHDOG);
+    watchdog->start(FA_WATCHDOG);
 
     if( data==FA_LIVE_PACKET )
     {

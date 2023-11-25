@@ -26,9 +26,4 @@ void updateScreenInfo(QObject *item);
 
 int isItemVisible(QObject *item);
 
-#ifdef _WIN32
-void executeAhk(QString name);
-void executScript(QString name, int id);
-#endif
-
 #endif // BACKEND_H
