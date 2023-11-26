@@ -21,7 +21,7 @@ class FaApacheSe : public QObject
     Q_OBJECT
 
 public:
-    explicit FaApacheSe(QObject *parent = 0);
+    explicit FaApacheSe(QString name="", QObject *parent = 0);
     ~FaApacheSe();
 
     void write(int id, QString data);
@@ -52,8 +52,10 @@ private:
     QTcpServer *server;
     QVector<QTimer *> lives;
     QVector<QTimer *> watchdogs;
+    QVector<QHostAddress> ipv4;
     QVector<QByteArray> read_bufs;
     int id;
+    QString con_name;
 };
 
 #endif // FA_APACHE_SE_H
