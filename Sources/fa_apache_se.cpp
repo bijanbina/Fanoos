@@ -1,16 +1,28 @@
 #include "fa_apache_se.h"
 
-FaApacheSe::FaApacheSe(QObject *parent): QObject(parent)
+FaApacheSe::FaApacheSe(QString name, QObject *parent): QObject(parent)
 {
+    con_name = name; // for debug msg
     server = new QTcpServer;
     connect(server, SIGNAL(newConnection()),
             this, SLOT(acceptConnection()));
 
     mapper_data       = new QSignalMapper(this);
-    mapper_disconnect = new QSignalMapper(this);
     mapper_error      = new QSignalMapper(this);
     mapper_live       = new QSignalMapper(this);
     mapper_watchdog   = new QSignalMapper(this);
+    mapper_disconnect = new QSignalMapper(this);
+
+    connect(mapper_data      , SIGNAL(mapped(int)),
+            this             , SLOT(readyRead(int)));
+    connect(mapper_error     , SIGNAL(mapped(int)),
+            this             , SLOT(displayError(int)));
+    connect(mapper_live      , SIGNAL(mapped(int)),
+            this             , SLOT(liveTimeout(int)));
+    connect(mapper_watchdog  , SIGNAL(mapped(int)),
+            this             , SLOT(watchdogTimeout(int)));
+    connect(mapper_disconnect, SIGNAL(mapped(int)),
+            this             , SLOT(tcpDisconnected(int)));
 }
 
 FaApacheSe::~FaApacheSe()
@@ -46,47 +58,41 @@ void FaApacheSe::acceptConnection()
 {
     int new_con_id = cons.length();
     cons.push_back(NULL);
-    qDebug() << "FaApacheSe::acceptConnection" << new_con_id;
 
     QTcpSocket *con = server->nextPendingConnection();
     cons[new_con_id] = con;
     con->setSocketOption(QAbstractSocket::LowDelayOption, 1);
     QTimer *live     = new QTimer;
     QTimer *watchdog = new QTimer;
+    QString msg = "FaApacheSe::" + con_name;
+    msg += " accept connection";
+    ipv4.push_back(QHostAddress(con->peerAddress().toIPv4Address()));
+    qDebug() << msg.toStdString().c_str() << new_con_id
+             << ipv4[new_con_id].toString();
 
     // readyRead
-    connect(con, SIGNAL(readyRead()), mapper_data, SLOT(map()));
     mapper_data->setMapping(con, new_con_id);
-    connect(mapper_data, SIGNAL(mapped(int)),
-             this, SLOT(readyRead(int)));
+    connect(con, SIGNAL(readyRead()), mapper_data, SLOT(map()));
 
     // displayError
+    mapper_error->setMapping(con, new_con_id);
     connect(con, SIGNAL(error(QAbstractSocket::SocketError)),
             mapper_error, SLOT(map()));
-    mapper_data->setMapping(con, new_con_id);
-    connect(mapper_error, SIGNAL(mapped(int)),
-             this, SLOT(displayError(int)));
 
     // disconnected
+    mapper_disconnect->setMapping(con, new_con_id);
     connect(con, SIGNAL(disconnected()),
             mapper_disconnect, SLOT(map()));
-    mapper_disconnect->setMapping(con, new_con_id);
-    connect(mapper_disconnect, SIGNAL(mapped(int)),
-            this, SLOT(tcpDisconnected(int)));
 
     // live
+    mapper_live->setMapping(live, new_con_id);
     connect(live, SIGNAL(timeout()),
             mapper_live, SLOT(map()));
-    mapper_live->setMapping(live, new_con_id);
-    connect(mapper_live, SIGNAL(mapped(int)),
-            this, SLOT(liveTimeout(int)));
 
     // watchdog
+    mapper_watchdog->setMapping(watchdog, new_con_id);
     connect(watchdog, SIGNAL(timeout()),
             mapper_watchdog, SLOT(map()));
-    mapper_watchdog->setMapping(watchdog, new_con_id);
-    connect(mapper_watchdog, SIGNAL(mapped(int)),
-            this, SLOT(watchdogTimeout(int)));
 
     lives.push_back(live);
     watchdogs.push_back(watchdog);
@@ -99,15 +105,30 @@ void FaApacheSe::acceptConnection()
 
 void FaApacheSe::displayError(int id)
  {
-    qDebug() << "FaApacheSe::Error" << cons[id]->errorString();
+    QString msg = "FaApacheSe::" + con_name;
+    msg += " Error";
+    qDebug() << msg.toStdString().c_str()
+             << id << cons[id]->errorString()
+             << cons[id]->state()
+             << ipv4[id].toString();
 
-    cons[id]->close();
     lives[id]->stop();
     watchdogs[id]->stop();
     if( cons[id]->error()==QTcpSocket::RemoteHostClosedError )
     {
         return;
     }
+}
+
+void FaApacheSe::tcpDisconnected(int id)
+{
+    QString msg = "FaApacheSe::" + con_name;
+    msg += " disconnected";
+    qDebug() << msg.toStdString().c_str() << id
+             << ipv4[id].toString();
+
+//    delete cons[id];
+//    cons[id] = NULL;
 }
 
 void FaApacheSe::write(int id, QString data)
@@ -121,8 +142,6 @@ void FaApacheSe::write(int id, QString data)
     if( cons[id]->isOpen()==0 ||
         cons[id]->state()!=QAbstractSocket::ConnectedState )
     {
-        qDebug() << "Error 302: FaApacheSe::write,"
-                 << "connection not open:" << id << data;
         return;
     }
 
@@ -135,12 +154,6 @@ void FaApacheSe::write(int id, QString data)
     lives[id]->start(FA_LIVE);//don't send live
 }
 
-void FaApacheSe::tcpDisconnected(int id)
-{
-    watchdogs[id]->stop();
-    lives[id]->stop();
-}
-
 // client lost, drop connection and reconnect
 void FaApacheSe::watchdogTimeout(int id)
 {
@@ -151,7 +164,6 @@ void FaApacheSe::watchdogTimeout(int id)
         watchdogs[id]->stop();
         lives[id]->stop();
         cons[id]->close();
-
     }
     else
     {
