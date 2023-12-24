@@ -29,13 +29,13 @@ FaApacheSe::~FaApacheSe()
     int len = cons.size();
     for( int i=0 ; i<len ; i++ )
     {
-        if( cons[id]==NULL )
+        if( cons[i]==NULL )
         {
             continue;
         }
-        if( cons[id]->isOpen() )
+        if( cons[i]->isOpen() )
         {
-            cons[id]->close();
+            cons[i]->close();
         }
     }
 }
@@ -117,22 +117,12 @@ void FaApacheSe::displayError(int id)
 
     lives[id]->stop();
     watchdogs[id]->stop();
-
-    if( cons[id]->error()==QTcpSocket::RemoteHostClosedError )
-    {
-        return;
-    }
+    cons[id]->close();
 
     qDebug() << "FaApacheSe::displayError," << id;
-}
-
-void FaApacheSe::tcpDisconnected(int id)
-{
-    QString msg = "FaApacheSe::" + con_name;
-    msg += " disconnected";
-    qDebug() << msg.toStdString().c_str() << id
-             << ipv4[id].toString();
-    cons[id]->close();
+//    if( cons[id]->error()==QTcpSocket::RemoteHostClosedError )
+//    {
+//    }
 }
 
 void FaApacheSe::write(int id, QString data)
@@ -158,12 +148,20 @@ void FaApacheSe::write(int id, QString data)
     lives[id]->start(FA_LIVE);//don't send live
 }
 
+void FaApacheSe::tcpDisconnected(int id)
+{
+    QString msg = "FaApacheSe::" + con_name;
+    msg += " disconnected";
+    qDebug() << msg.toStdString().c_str() << id
+             << ipv4[id].toString();
+}
+
 // client lost, drop connection and reconnect
 void FaApacheSe::watchdogTimeout(int id)
 {
     if( cons[id]->isOpen() )
     {
-        qDebug() << "Remote: connection dropped:"
+        qDebug() << "watchdogTimeout::" << id
                  << cons[id]->state();
         watchdogs[id]->stop();
         lives[id]->stop();
@@ -186,7 +184,7 @@ void FaApacheSe::liveTimeout(int id)
         }
         else
         {
-            qDebug() << "FaApacheSe::liveTimeout: not connected, State:"
+            qDebug() << "FaApacheSe::liveTimeout: not connected:"
                      << cons[id]->state();
             lives[id]->stop();
         }
@@ -200,6 +198,10 @@ void FaApacheSe::liveTimeout(int id)
 
 void FaApacheSe::readyRead(int id)
 {
+    if( cons[id]->isOpen()==0 )
+    {
+        qDebug() << "ReApacheCl::readyRead: WTF";
+    }
     read_bufs[id] += cons[id]->readAll();
     QByteArray data = processBuffer(id);
 
@@ -253,10 +255,12 @@ int FaApacheSe::putInFree()
     {
         if( cons[i]->isOpen()==0 )
         {
-            mapper_data->removeMappings(cons[id]);
-            mapper_error->removeMappings(cons[id]);
-            mapper_disconnect->removeMappings(cons[id]);
-            delete cons[id];
+            mapper_data->removeMappings(cons[i]);
+            mapper_error->removeMappings(cons[i]);
+            mapper_disconnect->removeMappings(cons[i]);
+            watchdogs[i]->stop();
+            lives[i]->stop();
+            delete cons[i];
             QTcpSocket *con = server->nextPendingConnection();
             cons[i] = con;
             con->setSocketOption(

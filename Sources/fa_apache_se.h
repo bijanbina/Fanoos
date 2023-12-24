@@ -55,7 +55,6 @@ private:
     QVector<QTimer *> watchdogs;
     QVector<QHostAddress> ipv4;
     QVector<QByteArray> read_bufs;
-    int id;
     QString con_name;
 };
 
