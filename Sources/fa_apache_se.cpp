@@ -1,7 +1,6 @@
 #include "fa_apache_se.h"
 
-FaApacheSe::FaApacheSe(QString name, QObject *parent): QObject(parent)
-{
+FaApacheSe::FaApacheSe(QString name, QObject *parent): QObject(parent){
     con_name = name; // for debug msg
     server = new QTcpServer;
     connect(server, SIGNAL(newConnection()),
@@ -56,6 +55,10 @@ void FaApacheSe::bind(int port)
 
 void FaApacheSe::acceptConnection()
 {
+    if( putInFree() )
+    {
+        return;
+    }
     int new_con_id = cons.length();
     cons.push_back(NULL);
 
@@ -114,10 +117,13 @@ void FaApacheSe::displayError(int id)
 
     lives[id]->stop();
     watchdogs[id]->stop();
+
     if( cons[id]->error()==QTcpSocket::RemoteHostClosedError )
     {
         return;
     }
+
+    qDebug() << "FaApacheSe::displayError," << id;
 }
 
 void FaApacheSe::tcpDisconnected(int id)
@@ -126,9 +132,7 @@ void FaApacheSe::tcpDisconnected(int id)
     msg += " disconnected";
     qDebug() << msg.toStdString().c_str() << id
              << ipv4[id].toString();
-
-//    delete cons[id];
-//    cons[id] = NULL;
+    cons[id]->close();
 }
 
 void FaApacheSe::write(int id, QString data)
@@ -239,4 +243,55 @@ QByteArray FaApacheSe::processBuffer(int id)
     read_bufs[id].remove(0, end_index);
 
     return data;
+}
+
+// return id in array where connection is free
+int FaApacheSe::putInFree()
+{
+    int len = cons.length();
+    for( int i=0 ; i<len ; i++ )
+    {
+        if( cons[i]->isOpen()==0 )
+        {
+            mapper_data->removeMappings(cons[id]);
+            mapper_error->removeMappings(cons[id]);
+            mapper_disconnect->removeMappings(cons[id]);
+            delete cons[id];
+            QTcpSocket *con = server->nextPendingConnection();
+            cons[i] = con;
+            con->setSocketOption(
+                        QAbstractSocket::LowDelayOption, 1);
+            quint32 ip_32 = con->peerAddress().toIPv4Address();
+            ipv4[i] = QHostAddress(ip_32);
+            QString msg = "FaApacheSe::" + con_name;
+            msg += " refereshing connection";
+            qDebug() << msg.toStdString().c_str() << i
+                     << ipv4[i].toString();
+
+            mapper_data->setMapping(con, i);
+            connect(con, SIGNAL(readyRead()), mapper_data, SLOT(map()));
+
+            // displayError
+            mapper_error->setMapping(con, i);
+            connect(con, SIGNAL(error(QAbstractSocket::SocketError)),
+                    mapper_error, SLOT(map()));
+
+            // disconnected
+            mapper_disconnect->setMapping(con, i);
+            connect(con, SIGNAL(disconnected()),
+                    mapper_disconnect, SLOT(map()));
+
+            lives[i]->start(FA_LIVE);
+            watchdogs[i]->start(FA_WATCHDOG);
+            emit connected(i);
+
+            return 1;
+        }
+        else
+        {
+            qDebug() << "conn is open" << i;
+        }
+    }
+
+    return 0;
 }

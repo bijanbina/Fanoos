@@ -43,6 +43,7 @@ public slots:
 
 private:
     QByteArray processBuffer(int id);
+    int putInFree();
 
     QSignalMapper *mapper_data;
     QSignalMapper *mapper_disconnect;
