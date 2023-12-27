@@ -161,8 +161,9 @@ void FaApacheSe::watchdogTimeout(int id)
 {
     if( cons[id]->isOpen() )
     {
-        qDebug() << "watchdogTimeout::" << id
-                 << cons[id]->state();
+        qDebug().noquote() << "watchdogTimeout::"
+                              + QString::number(id)
+                           << cons[id]->state();
         watchdogs[id]->stop();
         lives[id]->stop();
         cons[id]->close();
@@ -198,30 +199,37 @@ void FaApacheSe::liveTimeout(int id)
 
 void FaApacheSe::readyRead(int id)
 {
-    if( cons[id]->isOpen()==0 )
-    {
-        qDebug() << "ReApacheCl::readyRead: WTF";
-    }
     read_bufs[id] += cons[id]->readAll();
     QByteArray data = processBuffer(id);
 
-    watchdogs[id]->start(FA_WATCHDOG);
-
-    if( data==FA_LIVE_PACKET )
+    while( data.length() )
     {
-        return;
-    }
-    else if( data.contains(FA_LIVE_PACKET) )
-    {
-        data.replace(FA_LIVE_PACKET, "");
+        watchdogs[id]->start(FA_WATCHDOG);
+
+        if( data==FA_LIVE_PACKET )
+        {
+            return;
+        }
+        else if( data.contains(FA_LIVE_PACKET) )
+        {
+            data.replace(FA_LIVE_PACKET, "");
+        }
+
+        if( data.isEmpty() )
+        {
+            return;
+        }
+
+        emit dataReady(id, data);
+
+        data = processBuffer(id); //process multi packet
     }
 
-    if( data.isEmpty() )
+    if( read_bufs[id].length() )
     {
-        return;
+        qDebug() << "processBuffer"
+                 << read_bufs[id];
     }
-
-    emit dataReady(id, data);
 }
 
 QByteArray FaApacheSe::processBuffer(int id)
