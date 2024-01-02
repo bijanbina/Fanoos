@@ -199,28 +199,30 @@ void FaApacheSe::liveTimeout(int id)
 
 void FaApacheSe::readyRead(int id)
 {
-    read_bufs[id] += cons[id]->readAll();
-    QByteArray data = processBuffer(id);
+    QByteArray data_rx = cons[id]->readAll();
 
+    read_bufs[id] += data_rx;
+    QByteArray data = processBuffer(id);
+//    qDebug() << "readyRead::" << data_rx
+//             << "read_bufs::" << read_bufs[id];
+
+    watchdogs[id]->start(FA_WATCHDOG);
     while( data.length() )
     {
-        watchdogs[id]->start(FA_WATCHDOG);
-
         if( data==FA_LIVE_PACKET )
         {
-            return;
+            data = processBuffer(id); //process multi packet
+            continue;
         }
         else if( data.contains(FA_LIVE_PACKET) )
         {
             data.replace(FA_LIVE_PACKET, "");
         }
 
-        if( data.isEmpty() )
+        if( data.length() )
         {
-            return;
+            emit dataReady(id, data);
         }
-
-        emit dataReady(id, data);
 
         data = processBuffer(id); //process multi packet
     }

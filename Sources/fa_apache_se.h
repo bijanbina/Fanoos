@@ -28,6 +28,9 @@ public:
     void bind(int port);
 
     QVector<QTcpSocket *> cons;
+    QVector<QHostAddress> ipv4;
+    QVector<QTimer *> lives;
+    QVector<QTimer *> watchdogs;
 
 signals:
     void connected(int id);
@@ -51,9 +54,6 @@ private:
     QSignalMapper *mapper_live;
     QSignalMapper *mapper_watchdog;
     QTcpServer *server;
-    QVector<QTimer *> lives;
-    QVector<QTimer *> watchdogs;
-    QVector<QHostAddress> ipv4;
     QVector<QByteArray> read_bufs;
     QString con_name;
 };

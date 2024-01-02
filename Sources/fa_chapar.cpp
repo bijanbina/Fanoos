@@ -18,8 +18,6 @@ void FaChapar::dataReady(int id, QString data)
     for( int i=0 ; i<len ; i++ )
     {
         transmitter->write(i, data);
-        qDebug() << "write::" + QString::number(id)
-                 << data;
     }
 }
 
